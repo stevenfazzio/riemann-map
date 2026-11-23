@@ -61,6 +61,7 @@ from riemann_map import (
 )
 
 VARIANT = "q8_inst"  # the layout Steven chose on 2026-11-22: statements only
+EMBEDDER = "Qwen3-Embedding-8B"  # the model behind VARIANT (stage 8's MODEL), as the page names it
 BASE = 120  # stage 9's smallest region at the finest layer, in files
 NAMING = FULL / "naming"
 # Hand changes to stage 9's names: (layer, cluster index) -> (the name replaced, the new name).
@@ -86,9 +87,11 @@ MIRROR_URL = "https://github.com/tamnd/riemann-lean"
 PRIVATE_HTML = OUTPUT / "full" / "rh_map.html"
 
 TITLE = {"private": "RH proof map", "public": "Riemann Hypothesis Proof Map"}
+# The two models that shaped the map are both named: one places the files, one names the regions.
+MODEL_PILLS = [f"Layout by {EMBEDDER}", "Names by Claude Opus 5.5"]
 PILLS = {
-    "private": ["Source released 20 Nov 2026", "Names by Claude Opus 5.5", "Private build"],
-    "public": ["Source released 20 Nov 2026", "Names by Claude Opus 5.5", "Unofficial"],
+    "private": ["Source released 20 Nov 2026", *MODEL_PILLS, "Private build"],
+    "public": ["Source released 20 Nov 2026", *MODEL_PILLS, "Unofficial"],
 }
 # Under the pills of the public page. The subtitle credits the author; this says what the
 # map is, what it quotes, and how to have something removed.
@@ -96,9 +99,10 @@ ABOUT = f"""
 <details class="about"><summary>About this map</summary>
 <p>Each point is one source file of the Lean 4 proof of the Riemann hypothesis that
 <a href="{AUTHOR_NOTE_URL}" target="_blank" rel="noopener">Levent Alpöge released</a> on
-20 November 2026. A file sits near others that state similar mathematics: the layout comes
-from the text of each file's theorem statements and definitions. Region names were written by
-Claude Opus 5.5 from sample files and have not been checked by a mathematician.</p>
+20 November 2026. A file sits near others that state similar mathematics: the text of each
+file's theorem statements and definitions is embedded with {EMBEDDER} and laid out in two
+dimensions with UMAP. Region names were written by Claude Opus 5.5 from sample files and have
+not been checked by a mathematician.</p>
 <p>This map is unofficial and has no connection to the author. Hovercards quote short excerpts
 of the source, which is the author's work, and a click opens the file in a
 <a href="{MIRROR_URL}" target="_blank" rel="noopener">public copy</a>. To have anything
@@ -168,6 +172,8 @@ CUSTOM_CSS = """
   color: $panel_muted; background: $panel_tint;
   border: 1px solid $panel_line; border-radius: 12px;
 }
+/* Four pills in one row make the panel 734 px wide; capped like .about, they wrap two and two. */
+.title-pills { max-width: 520px; }
 .about { margin-top: 8px; max-width: 520px; font-size: 12px; line-height: 1.45; color: $about_text; }
 .about summary {
   cursor: pointer; font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
@@ -459,7 +465,7 @@ def main() -> None:
 
     # The title panel holds only spans, so its first closing </div> is its own.
     pills_html = "".join(f'<span class="title-pill">{html.escape(p)}</span>' for p in PILLS[build])
-    in_panel = f"<div>{pills_html}</div>" + (ABOUT if args.public else "")
+    in_panel = f'<div class="title-pills">{pills_html}</div>' + (ABOUT if args.public else "")
     text, found = re.subn(
         r'(<div\s+id="title-container"[^>]*>.*?)(</div>)',
         lambda m: m.group(1) + in_panel + m.group(2),

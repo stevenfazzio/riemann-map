@@ -20,7 +20,9 @@ removed, [open an issue](https://github.com/stevenfazzio/riemann-map/issues).
 
 Files that sit near each other state similar mathematics. The layout uses only what a
 file says: no paths, imports or proofs go into the text that is embedded, so
-directories play no part in where a file lands.
+directories play no part in where a file lands. What counts as similar is decided by a
+text embedding model; [How files are placed](#how-files-are-placed) says which one and
+how much it matters.
 
 The 412 region names were written by Claude Opus 5.5, each from eight files near the
 middle of a region, the region's most distinctive identifiers and the names of the
@@ -31,6 +33,111 @@ The colour menu offers six overlays: the Mathlib area a file opens, the branch o
 proof it sits under, its directory, its import depth, its distance from the main
 theorem, and how many declarations it holds. The dependency fields come from a source
 scan (the CC0 records below), not from a Lean build, so they are approximate.
+[Colour overlays](#colour-overlays) says how each one is worked out.
+
+## How files are placed
+
+Where a file lands is decided by a text embedding model. The map is that model's
+reading of the statements, and another model would draw a different map.
+
+1. **Text.** Each file is reduced to its statements: the signature of every theorem and
+   lemma, and every definition as written, up to 2,000 characters each. Proofs, paths,
+   imports and `open` lines are left out. A theorem stated as a bare named proposition
+   (`theorem foo : Foo`) also carries the definition of `Foo`.
+2. **Embedding.** [Qwen3-Embedding-8B](https://huggingface.co/Qwen/Qwen3-Embedding-8B),
+   a general-purpose text embedding model, embeds each text behind this instruction:
+
+   > Given the theorem statements and definitions of a Lean 4 source file, identify the
+   > area of mathematics it belongs to
+
+   The first 1,024 of the model's 4,096 dimensions are kept. Texts over 40,000
+   characters are cut to that length, which affects 90 files. One provider (Nebius,
+   through OpenRouter) embedded every file: in a 200-file test a second provider's
+   vectors changed a tenth of each file's nearest neighbours.
+3. **Layout.** UMAP reduces the vectors to two dimensions (15 neighbours, cosine
+   distance, `min_dist` 0.05, a fixed seed).
+
+The model was chosen on the 10,000-file pilot, by what a file has in common with its 15
+nearest neighbours on the map. The measure is the overlap between the Mathlib namespaces
+two files `open`, from 0 to 1; random pairs score 0.09. `open` lines are not in the
+embedded text, so this checks the layout against something the model was not given.
+
+| Embedding of the same text | Neighbours' overlap | Embedding neighbours kept on the map |
+|---|---|---|
+| gte-modernbert-base, run locally | 0.26 | 13% |
+| Qwen3-Embedding-8B | 0.31 | 20% |
+| Qwen3-Embedding-8B behind the instruction | 0.33 | 29% |
+
+The last column is the share of a file's 15 nearest neighbours on the map that are also
+among its 15 nearest in the embedding.
+
+On the finished map of 175,013 files the overlap is 0.43 (0.54 in the embedding before
+UMAP, 0.14 for random pairs), and 13% of embedding neighbours are kept. Two dimensions
+hold the broad regions and lose most of the fine structure, so the map is better read
+by region than by which file is nearest to which.
+
+## Colour overlays
+
+The default colouring is by named region. The colour menu offers six more, and none of
+them is given to the embedding model.
+
+| Overlay | What colours a file |
+|---|---|
+| Mathlib area opened | The most specific of seven hand-grouped Mathlib areas among the namespaces the file opens |
+| Proof branch | Which of eight large sub-proofs under the main theorem the file's declarations belong to |
+| Part (directory) | The second component of the file's path. The 14 largest are named and the rest are "Other" |
+| Import depth from Main | The longest chain of imports from `Main` down to the file (`Main` is 0, the deepest file 202) |
+| Steps from the main theorem | The distance from `riemannHypothesis` in the uses-graph, for the nearest declaration in the file, in six bins. Files the proof does not use are grey |
+| Declarations in file | How many declarations the file holds, on a log scale |
+
+Proof branch, import depth and steps come from the CC0 records. Those are a scan of the
+source text and not a Lean build, so what uses what is approximate. Category colours are
+a colour-blind-safe Glasbey palette, handed out in order of how many files each category
+holds, with greys for the catch-all categories.
+
+### Mathlib area opened
+
+A Lean file's `open` lines name the namespaces it works in. The project's own
+namespaces are set aside, and the root of each remaining one is looked up in a grouping
+of 53 Mathlib namespaces into seven areas (`MATHLIB_AREAS` in `05_render_pilot.py`). The
+grouping was made by hand from the most frequently opened namespaces. It is not a
+taxonomy.
+
+70% of files open namespaces from more than one area. Such a file takes the first of its
+areas in the order below, however many namespaces it opens from each. The order runs
+from the most distinctive subjects to the most ambient, so a common area colours a file
+only when the file opens nothing more specific.
+
+| Area, in order | Files coloured | Files that open it |
+|---|---|---|
+| Algebraic geometry | 40,356 | 40,356 |
+| Category theory | 2,124 | 42,399 |
+| Polynomials | 22,526 | 25,872 |
+| Analysis and measure | 52,533 | 69,529 |
+| Linear algebra | 20,953 | 77,966 |
+| Number fields | 16,798 | 98,535 |
+| Sets and logic | 3,354 | 38,196 |
+
+"None opened" (14,475 files) opens no Mathlib namespace: 6,987 of them open nothing and
+the rest open only the project's own. "Other Mathlib" (1,894 files) opens only
+namespaces outside the grouping.
+
+### Proof branch
+
+The records trace everything `riemannHypothesis` uses, directly or not: 757,483 of the
+release's 1,061,531 declarations. They put eight declarations on a trunk that leads down
+from the theorem, and name eight large declarations that hang off it. A declaration
+belongs to a branch when the proof reaches it only through that branch's head. 300,318
+declarations do. The others are not confined to any one of the eight and have no branch.
+
+A file takes the most common branch among its declarations that have one. Of the 64,687
+files with a branch, 64,443 hold declarations of one branch only. The legend names a
+branch by the last part of its head's Lean name (`vwin_of_row` is one), and the four
+files that hold the trunk are `trunk`.
+
+"Used, no single branch" (79,679 files) means the proof uses the file but none of its
+declarations sits under a single branch. "Not used by the proof" (30,647 files) means
+the scan found nothing in the file that the theorem depends on.
 
 ## How it's built
 
