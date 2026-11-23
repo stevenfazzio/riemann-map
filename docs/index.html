@@ -75,9 +75,9 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
-    background: #ffffff;
+    background: #000000;
     font-family: IBM Plex Sans;
-    color: #000000;
+    color: #ffffff;
   }
   .container-box {
     margin: 8px 16px 8px 16px;
@@ -88,14 +88,14 @@
     height: fit-content;
     z-index: 2;
     backdrop-filter: blur(3px);
-    background: #ffffffaa;
-    box-shadow: 2px 3px 10px #aaaaaa44;
+    background: #000000aa;
+    box-shadow: 2px 3px 10px #00000044;
     position: relative;
     pointer-events: auto;
   }
   .more-opaque {
     backdrop-filter: blur(6px);
-    background-color: #ffffffee;
+    background-color: #000000ee;
   }
   #deck-container {
     width: 100vw;
@@ -103,26 +103,26 @@
   }
   #deck-container canvas {
     z-index: 1;
-    background: #ffffff;
+    background: #000000;
   }
   .deck-tooltip {
       
             font-size: 0.8em;
             font-family: IBM Plex Sans;
             font-weight: 300;
-            color: #000000 !important;
-            background-color: #ffffffee !important;
+            color: #ffffff !important;
+            background-color: #000000ee !important;
             border-radius: 12px;
             backdrop-filter: blur(6px);
-            box-shadow: 2px 3px 10px #aaaaaa44;
+            box-shadow: 2px 3px 10px #00000044;
             max-width: 25%;
   }
   input {
     margin: 2px;
     padding: 4px;
     border-radius: 8px;
-    color: #000000;
-    background: #ffffffdd;
+    color: #ffffff;
+    background: #000000dd;
     border: 2px inset #77777744;
     transition: 0.5s;
     outline: none;
@@ -141,22 +141,22 @@
 .title-pill {
   display: inline-block; margin: 8px 6px 0 0; padding: 3px 10px;
   font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
-  color: #636c76; background: rgba(99, 108, 118, 0.08);
-  border: 1px solid rgba(99, 108, 118, 0.15); border-radius: 12px;
+  color: #a4adb7; background: rgba(164, 173, 183, 0.12);
+  border: 1px solid rgba(164, 173, 183, 0.25); border-radius: 12px;
 }
-.about { margin-top: 8px; max-width: 520px; font-size: 12px; line-height: 1.45; color: #4b5563; }
+.about { margin-top: 8px; max-width: 520px; font-size: 12px; line-height: 1.45; color: #b6bdc5; }
 .about summary {
   cursor: pointer; font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
-  text-transform: uppercase; color: #636c76;
+  text-transform: uppercase; color: #a4adb7;
 }
 .about p { margin: 6px 0 0; }
-.about a { color: #2563eb; }
+.about a { color: #7ab0ff; }
 
 
 </style>
   </head>
   
-  <body>
+  <body class="darkmode">
 <div id="loading">
   <img
     id="loading-image"
@@ -189,7 +189,7 @@
       <div id="title-container" class="container-box">
         <span
           id="main-title"
-          style="font-family:IBM Plex Sans;font-size:24pt;font-weight:;color:#000000"
+          style="font-family:IBM Plex Sans;font-size:24pt;font-weight:;color:#ffffff"
         >
           Riemann Hypothesis Proof Map
         </span>
@@ -753,7 +753,7 @@ function loadPointDataLayer() {
       
       datamap.addPoints(pointData, {
         pointSize: 0.01930944908317988,
-        pointOutlineColor: [250, 250, 250, 128],
+        pointOutlineColor: [5, 5, 5, 128],
         pointLineWidth: 0.001,
         pointHoverColor: [170, 0, 0, 187],
         pointLineWidthMaxPixels: 3,
@@ -820,7 +820,7 @@ function loadColorData() {
       const colorMapContainer = document.getElementById("colormap-selector-container");
       const legendContainer = document.getElementById("legend-container");
       
-      const colorMaps = [{"field": "none", "description": "Clusters", "colors": ["#2a671c", "#ca52a3", "#b2c85e", "#bcacd8", "#5a40d4"], "kind": "categorical"}, {"field": "area", "description": "Mathlib area opened", "colors": ["#2861ff", "#c61c00", "#ba0c92", "#ffba00", "#c682ff", "#008265", "#f72079", "#e2e2e2", "#b5b5b5"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"Analysis and measure": "#2861ff", "Algebraic geometry": "#c61c00", "Polynomials": "#ba0c92", "Linear algebra": "#ffba00", "Number fields": "#c682ff", "Sets and logic": "#008265", "Category theory": "#f72079", "None opened": "#e2e2e2", "Other Mathlib": "#b5b5b5"}}, {"field": "branch", "description": "Proof branch", "colors": ["#2861ff", "#c61c00", "#ffae00", "#ba00a2", "#00baff", "#008255", "#d7086d", "#ff5de3", "#008a96", "#a3a3a3", "#dcdcdc"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"hypotheses_nonempty_of_unramified_exponents_alt": "#2861ff", "topCovolSlim2_use_alt_alt": "#c61c00", "galoisLocalGlobalStrong_recParameter": "#ffae00", "vwin_of_row": "#ba00a2", "ontoX_and_lamLow_of_unitaryGroupHypotheses'": "#00baff", "open0_of_unitary_group_hypotheses": "#008255", "every_character_of_green_v_win": "#d7086d", "theta_integrals_agree_and_local_matching_of_literature": "#ff5de3", "trunk": "#008a96", "Used, no single branch": "#a3a3a3", "Not used by the proof": "#dcdcdc"}}, {"field": "part", "description": "Part (directory)", "colors": ["#2861ff", "#0cef55", "#c22400", "#79dbff", "#ef28eb", "#ffae9a", "#be008e", "#009e3d", "#ff8ed7", "#3d7592", "#ff3565", "#00e7c2", "#00a6ff", "#ff7500", "#8c8c8c"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"AbelianVarietyTheory": "#2861ff", "AutomorphicArithmetic": "#0cef55", "AutomorphicSpectrum": "#c22400", "WeilBound": "#79dbff", "HeightsAndTheta": "#ef28eb", "LocalToGlobal": "#ffae9a", "PeriodIntegrals": "#be008e", "SharpRestriction": "#009e3d", "ReductiveGroups": "#ff8ed7", "HermitianCurvature": "#3d7592", "EtaleCohomology": "#ff3565", "SpectralGeometry": "#00e7c2", "AutomorphicForms": "#00a6ff", "ResolutionOfSingularities": "#ff7500", "Other": "#8c8c8c"}}, {"field": "import_depth", "description": "Import depth from Main", "colors": ["#440154", "#440256", "#450457", "#450559", "#46075a", "#46085c", "#460a5d", "#460b5e", "#470d60", "#470e61", "#471063", "#471164", "#471365", "#481467", "#481668", "#481769", "#48186a", "#481a6c", "#481b6d", "#481c6e", "#481d6f", "#481f70", "#482071", "#482173", "#482374", "#482475", "#482576", "#482677", "#482878", "#482979", "#472a7a", "#472c7a", "#472d7b", "#472e7c", "#472f7d", "#46307e", "#46327e", "#46337f", "#463480", "#453581", "#453781", "#453882", "#443983", "#443a83", "#443b84", "#433d84", "#433e85", "#423f85", "#424086", "#424186", "#414287", "#414487", "#404588", "#404688", "#3f4788", "#3f4889", "#3e4989", "#3e4a89", "#3e4c8a", "#3d4d8a", "#3d4e8a", "#3c4f8a", "#3c508b", "#3b518b", "#3b528b", "#3a538b", "#3a548c", "#39558c", "#39568c", "#38588c", "#38598c", "#375a8c", "#375b8d", "#365c8d", "#365d8d", "#355e8d", "#355f8d", "#34608d", "#34618d", "#33628d", "#33638d", "#32648e", "#32658e", "#31668e", "#31678e", "#31688e", "#30698e", "#306a8e", "#2f6b8e", "#2f6c8e", "#2e6d8e", "#2e6e8e", "#2e6f8e", "#2d708e", "#2d718e", "#2c718e", "#2c728e", "#2c738e", "#2b748e", "#2b758e", "#2a768e", "#2a778e", "#2a788e", "#29798e", "#297a8e", "#297b8e", "#287c8e", "#287d8e", "#277e8e", "#277f8e", "#27808e", "#26818e", "#26828e", "#26828e", "#25838e", "#25848e", "#25858e", "#24868e", "#24878e", "#23888e", "#23898e", "#238a8d", "#228b8d", "#228c8d", "#228d8d", "#218e8d", "#218f8d", "#21908d", "#21918c", "#20928c", "#20928c", "#20938c", "#1f948c", "#1f958b", "#1f968b", "#1f978b", "#1f988b", "#1f998a", "#1f9a8a", "#1e9b8a", "#1e9c89", "#1e9d89", "#1f9e89", "#1f9f88", "#1fa088", "#1fa188", "#1fa187", "#1fa287", "#20a386", "#20a486", "#21a585", "#21a685", "#22a785", "#22a884", "#23a983", "#24aa83", "#25ab82", "#25ac82", "#26ad81", "#27ad81", "#28ae80", "#29af7f", "#2ab07f", "#2cb17e", "#2db27d", "#2eb37c", "#2fb47c", "#31b57b", "#32b67a", "#34b679", "#35b779", "#37b878", "#38b977", "#3aba76", "#3bbb75", "#3dbc74", "#3fbc73", "#40bd72", "#42be71", "#44bf70", "#46c06f", "#48c16e", "#4ac16d", "#4cc26c", "#4ec36b", "#50c46a", "#52c569", "#54c568", "#56c667", "#58c765", "#5ac864", "#5cc863", "#5ec962", "#60ca60", "#63cb5f", "#65cb5e", "#67cc5c", "#69cd5b", "#6ccd5a", "#6ece58", "#70cf57", "#73d056", "#75d054", "#77d153", "#7ad151", "#7cd250", "#7fd34e", "#81d34d", "#84d44b", "#86d549", "#89d548", "#8bd646", "#8ed645", "#90d743", "#93d741", "#95d840", "#98d83e", "#9bd93c", "#9dd93b", "#a0da39", "#a2da37", "#a5db36", "#a8db34", "#aadc32", "#addc30", "#b0dd2f", "#b2dd2d", "#b5de2b", "#b8de29", "#bade28", "#bddf26", "#c0df25", "#c2df23", "#c5e021", "#c8e020", "#cae11f", "#cde11d", "#d0e11c", "#d2e21b", "#d5e21a", "#d8e219", "#dae319", "#dde318", "#dfe318", "#e2e418", "#e5e419", "#e7e419", "#eae51a", "#ece51b", "#efe51c", "#f1e51d", "#f4e61e", "#f6e620", "#f8e621", "#fbe723", "#fde725"], "kind": "continuous", "nColors": 5, "cmapName": "viridis", "valueRange": [0.0, 202.0]}, {"field": "steps", "description": "Steps from the main theorem", "colors": ["#440154", "#424086", "#2c738e", "#1fa188", "#63cb5f", "#dfe318", "#dcdcdc"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"0\u201315 steps": "#440154", "16\u201325 steps": "#424086", "26\u201335 steps": "#2c738e", "36\u201350 steps": "#1fa188", "51\u201375 steps": "#63cb5f", "76 or more steps": "#dfe318", "Not used by the proof": "#dcdcdc"}}, {"field": "log_decls", "description": "Declarations in file (log10)", "colors": ["#000004", "#010005", "#010106", "#010108", "#020109", "#02020b", "#02020d", "#03030f", "#030312", "#040414", "#050416", "#060518", "#06051a", "#07061c", "#08071e", "#090720", "#0a0822", "#0b0924", "#0c0926", "#0d0a29", "#0e0b2b", "#100b2d", "#110c2f", "#120d31", "#130d34", "#140e36", "#150e38", "#160f3b", "#180f3d", "#19103f", "#1a1042", "#1c1044", "#1d1147", "#1e1149", "#20114b", "#21114e", "#221150", "#241253", "#251255", "#271258", "#29115a", "#2a115c", "#2c115f", "#2d1161", "#2f1163", "#311165", "#331067", "#341069", "#36106b", "#38106c", "#390f6e", "#3b0f70", "#3d0f71", "#3f0f72", "#400f74", "#420f75", "#440f76", "#451077", "#471078", "#491078", "#4a1079", "#4c117a", "#4e117b", "#4f127b", "#51127c", "#52137c", "#54137d", "#56147d", "#57157e", "#59157e", "#5a167e", "#5c167f", "#5d177f", "#5f187f", "#601880", "#621980", "#641a80", "#651a80", "#671b80", "#681c81", "#6a1c81", "#6b1d81", "#6d1d81", "#6e1e81", "#701f81", "#721f81", "#732081", "#752181", "#762181", "#782281", "#792282", "#7b2382", "#7c2382", "#7e2482", "#802582", "#812581", "#832681", "#842681", "#862781", "#882781", "#892881", "#8b2981", "#8c2981", "#8e2a81", "#902a81", "#912b81", "#932b80", "#942c80", "#962c80", "#982d80", "#992d80", "#9b2e7f", "#9c2e7f", "#9e2f7f", "#a02f7f", "#a1307e", "#a3307e", "#a5317e", "#a6317d", "#a8327d", "#aa337d", "#ab337c", "#ad347c", "#ae347b", "#b0357b", "#b2357b", "#b3367a", "#b5367a", "#b73779", "#b83779", "#ba3878", "#bc3978", "#bd3977", "#bf3a77", "#c03a76", "#c23b75", "#c43c75", "#c53c74", "#c73d73", "#c83e73", "#ca3e72", "#cc3f71", "#cd4071", "#cf4070", "#d0416f", "#d2426f", "#d3436e", "#d5446d", "#d6456c", "#d8456c", "#d9466b", "#db476a", "#dc4869", "#de4968", "#df4a68", "#e04c67", "#e24d66", "#e34e65", "#e44f64", "#e55064", "#e75263", "#e85362", "#e95462", "#ea5661", "#eb5760", "#ec5860", "#ed5a5f", "#ee5b5e", "#ef5d5e", "#f05f5e", "#f1605d", "#f2625d", "#f2645c", "#f3655c", "#f4675c", "#f4695c", "#f56b5c", "#f66c5c", "#f66e5c", "#f7705c", "#f7725c", "#f8745c", "#f8765c", "#f9785d", "#f9795d", "#f97b5d", "#fa7d5e", "#fa7f5e", "#fa815f", "#fb835f", "#fb8560", "#fb8761", "#fc8961", "#fc8a62", "#fc8c63", "#fc8e64", "#fc9065", "#fd9266", "#fd9467", "#fd9668", "#fd9869", "#fd9a6a", "#fd9b6b", "#fe9d6c", "#fe9f6d", "#fea16e", "#fea36f", "#fea571", "#fea772", "#fea973", "#feaa74", "#feac76", "#feae77", "#feb078", "#feb27a", "#feb47b", "#feb67c", "#feb77e", "#feb97f", "#febb81", "#febd82", "#febf84", "#fec185", "#fec287", "#fec488", "#fec68a", "#fec88c", "#feca8d", "#fecc8f", "#fecd90", "#fecf92", "#fed194", "#fed395", "#fed597", "#fed799", "#fed89a", "#fdda9c", "#fddc9e", "#fddea0", "#fde0a1", "#fde2a3", "#fde3a5", "#fde5a7", "#fde7a9", "#fde9aa", "#fdebac", "#fcecae", "#fceeb0", "#fcf0b2", "#fcf2b4", "#fcf4b6", "#fcf6b8", "#fcf7b9", "#fcf9bb", "#fcfbbd", "#fcfdbf"], "kind": "continuous", "nColors": 5, "cmapName": "magma", "valueRange": [0.0, 3.1812717715594614]}];
+      const colorMaps = [{"field": "none", "description": "Clusters", "colors": ["#2a671c", "#ca52a3", "#b2c85e", "#bcacd8", "#5a40d4"], "kind": "categorical"}, {"field": "area", "description": "Mathlib area opened", "colors": ["#2861ff", "#c61c00", "#ba0c92", "#ffba00", "#c682ff", "#008265", "#f72079", "#3a3a3a", "#5a5a5a"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"Analysis and measure": "#2861ff", "Algebraic geometry": "#c61c00", "Polynomials": "#ba0c92", "Linear algebra": "#ffba00", "Number fields": "#c682ff", "Sets and logic": "#008265", "Category theory": "#f72079", "None opened": "#3a3a3a", "Other Mathlib": "#5a5a5a"}}, {"field": "branch", "description": "Proof branch", "colors": ["#2861ff", "#c61c00", "#ffae00", "#ba00a2", "#00baff", "#008255", "#d7086d", "#ff5de3", "#008a96", "#6b6b6b", "#454545"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"hypotheses_nonempty_of_unramified_exponents_alt": "#2861ff", "topCovolSlim2_use_alt_alt": "#c61c00", "galoisLocalGlobalStrong_recParameter": "#ffae00", "vwin_of_row": "#ba00a2", "ontoX_and_lamLow_of_unitaryGroupHypotheses'": "#00baff", "open0_of_unitary_group_hypotheses": "#008255", "every_character_of_green_v_win": "#d7086d", "theta_integrals_agree_and_local_matching_of_literature": "#ff5de3", "trunk": "#008a96", "Used, no single branch": "#6b6b6b", "Not used by the proof": "#454545"}}, {"field": "part", "description": "Part (directory)", "colors": ["#2861ff", "#0cef55", "#c22400", "#79dbff", "#ef28eb", "#ffae9a", "#be008e", "#009e3d", "#ff8ed7", "#3d7592", "#ff3565", "#00e7c2", "#00a6ff", "#ff7500", "#7d7d7d"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"AbelianVarietyTheory": "#2861ff", "AutomorphicArithmetic": "#0cef55", "AutomorphicSpectrum": "#c22400", "WeilBound": "#79dbff", "HeightsAndTheta": "#ef28eb", "LocalToGlobal": "#ffae9a", "PeriodIntegrals": "#be008e", "SharpRestriction": "#009e3d", "ReductiveGroups": "#ff8ed7", "HermitianCurvature": "#3d7592", "EtaleCohomology": "#ff3565", "SpectralGeometry": "#00e7c2", "AutomorphicForms": "#00a6ff", "ResolutionOfSingularities": "#ff7500", "Other": "#7d7d7d"}}, {"field": "import_depth", "description": "Import depth from Main", "colors": ["#463480", "#453581", "#453781", "#453781", "#453882", "#443983", "#443a83", "#443b84", "#433d84", "#433e85", "#433e85", "#423f85", "#424086", "#424186", "#414287", "#414487", "#404588", "#404588", "#404688", "#3f4788", "#3f4889", "#3e4989", "#3e4a89", "#3e4c8a", "#3e4c8a", "#3d4d8a", "#3d4e8a", "#3c4f8a", "#3c508b", "#3b518b", "#3b528b", "#3b528b", "#3a538b", "#3a548c", "#39558c", "#39568c", "#38588c", "#38588c", "#38598c", "#375a8c", "#375b8d", "#365c8d", "#365d8d", "#355e8d", "#355e8d", "#355f8d", "#34608d", "#34618d", "#33628d", "#33638d", "#32648e", "#32648e", "#32658e", "#31668e", "#31678e", "#31688e", "#30698e", "#306a8e", "#306a8e", "#2f6b8e", "#2f6c8e", "#2e6d8e", "#2e6e8e", "#2e6f8e", "#2d708e", "#2d708e", "#2d718e", "#2c718e", "#2c728e", "#2c738e", "#2b748e", "#2b748e", "#2b758e", "#2a768e", "#2a778e", "#2a788e", "#29798e", "#297a8e", "#297a8e", "#297b8e", "#287c8e", "#287d8e", "#277e8e", "#277f8e", "#27808e", "#27808e", "#26818e", "#26828e", "#26828e", "#25838e", "#25848e", "#25858e", "#25858e", "#24868e", "#24878e", "#23888e", "#23898e", "#238a8d", "#228b8d", "#228b8d", "#228c8d", "#228d8d", "#218e8d", "#218f8d", "#21908d", "#21918c", "#21918c", "#20928c", "#20928c", "#20938c", "#1f948c", "#1f958b", "#1f958b", "#1f968b", "#1f978b", "#1f988b", "#1f998a", "#1f9a8a", "#1e9b8a", "#1e9b8a", "#1e9c89", "#1e9d89", "#1f9e89", "#1f9f88", "#1fa088", "#1fa188", "#1fa188", "#1fa187", "#1fa287", "#20a386", "#20a486", "#21a585", "#21a685", "#21a685", "#22a785", "#22a884", "#23a983", "#24aa83", "#25ab82", "#25ac82", "#25ac82", "#26ad81", "#27ad81", "#28ae80", "#29af7f", "#2ab07f", "#2ab07f", "#2cb17e", "#2db27d", "#2eb37c", "#2fb47c", "#31b57b", "#32b67a", "#32b67a", "#34b679", "#35b779", "#37b878", "#38b977", "#3aba76", "#3bbb75", "#3bbb75", "#3dbc74", "#3fbc73", "#40bd72", "#42be71", "#44bf70", "#46c06f", "#46c06f", "#48c16e", "#4ac16d", "#4cc26c", "#4ec36b", "#50c46a", "#52c569", "#52c569", "#54c568", "#56c667", "#58c765", "#5ac864", "#5cc863", "#5ec962", "#5ec962", "#60ca60", "#63cb5f", "#65cb5e", "#67cc5c", "#69cd5b", "#69cd5b", "#6ccd5a", "#6ece58", "#70cf57", "#73d056", "#75d054", "#77d153", "#77d153", "#7ad151", "#7cd250", "#7fd34e", "#81d34d", "#84d44b", "#86d549", "#86d549", "#89d548", "#8bd646", "#8ed645", "#90d743", "#93d741", "#95d840", "#95d840", "#98d83e", "#9bd93c", "#9dd93b", "#a0da39", "#a2da37", "#a5db36", "#a5db36", "#a8db34", "#aadc32", "#addc30", "#b0dd2f", "#b2dd2d", "#b2dd2d", "#b5de2b", "#b8de29", "#bade28", "#bddf26", "#c0df25", "#c2df23", "#c2df23", "#c5e021", "#c8e020", "#cae11f", "#cde11d", "#d0e11c", "#d2e21b", "#d2e21b", "#d5e21a", "#d8e219", "#dae319", "#dde318", "#dfe318", "#e2e418", "#e2e418", "#e5e419", "#e7e419", "#eae51a", "#ece51b", "#efe51c", "#f1e51d", "#f1e51d", "#f4e61e", "#f6e620", "#f8e621", "#fbe723", "#fde725", "#fde725"], "kind": "continuous", "nColors": 5, "cmapName": "viridis_from_0.15", "valueRange": [0.0, 202.0]}, {"field": "steps", "description": "Steps from the main theorem", "colors": ["#463480", "#33628d", "#238a8d", "#2ab07f", "#77d153", "#e5e419", "#454545"], "kind": "categorical", "nColors": 5, "vmin": null, "vmax": null, "colorMapping": {"0\u201315 steps": "#463480", "16\u201325 steps": "#33628d", "26\u201335 steps": "#238a8d", "36\u201350 steps": "#2ab07f", "51\u201375 steps": "#77d153", "76 or more steps": "#e5e419", "Not used by the proof": "#454545"}}, {"field": "log_decls", "description": "Declarations in file (log10)", "colors": ["#641a80", "#651a80", "#671b80", "#671b80", "#681c81", "#6a1c81", "#6b1d81", "#6b1d81", "#6d1d81", "#6e1e81", "#6e1e81", "#701f81", "#721f81", "#721f81", "#732081", "#752181", "#762181", "#762181", "#782281", "#792282", "#792282", "#7b2382", "#7c2382", "#7c2382", "#7e2482", "#802582", "#812581", "#812581", "#832681", "#842681", "#842681", "#862781", "#882781", "#882781", "#892881", "#8b2981", "#8c2981", "#8c2981", "#8e2a81", "#902a81", "#902a81", "#912b81", "#932b80", "#942c80", "#942c80", "#962c80", "#982d80", "#982d80", "#992d80", "#9b2e7f", "#9b2e7f", "#9c2e7f", "#9e2f7f", "#a02f7f", "#a02f7f", "#a1307e", "#a3307e", "#a3307e", "#a5317e", "#a6317d", "#a6317d", "#a8327d", "#aa337d", "#ab337c", "#ab337c", "#ad347c", "#ae347b", "#ae347b", "#b0357b", "#b2357b", "#b2357b", "#b3367a", "#b5367a", "#b73779", "#b73779", "#b83779", "#ba3878", "#ba3878", "#bc3978", "#bd3977", "#bf3a77", "#bf3a77", "#c03a76", "#c23b75", "#c23b75", "#c43c75", "#c53c74", "#c53c74", "#c73d73", "#c83e73", "#ca3e72", "#ca3e72", "#cc3f71", "#cd4071", "#cd4071", "#cf4070", "#d0416f", "#d0416f", "#d2426f", "#d3436e", "#d5446d", "#d5446d", "#d6456c", "#d8456c", "#d8456c", "#d9466b", "#db476a", "#db476a", "#dc4869", "#de4968", "#df4a68", "#df4a68", "#e04c67", "#e24d66", "#e24d66", "#e34e65", "#e44f64", "#e55064", "#e55064", "#e75263", "#e85362", "#e85362", "#e95462", "#ea5661", "#ea5661", "#eb5760", "#ec5860", "#ed5a5f", "#ed5a5f", "#ee5b5e", "#ef5d5e", "#ef5d5e", "#f05f5e", "#f1605d", "#f1605d", "#f2625d", "#f2645c", "#f3655c", "#f3655c", "#f4675c", "#f4695c", "#f4695c", "#f56b5c", "#f66c5c", "#f66c5c", "#f66e5c", "#f7705c", "#f7725c", "#f7725c", "#f8745c", "#f8765c", "#f8765c", "#f9785d", "#f9795d", "#f97b5d", "#f97b5d", "#fa7d5e", "#fa7f5e", "#fa7f5e", "#fa815f", "#fb835f", "#fb835f", "#fb8560", "#fb8761", "#fc8961", "#fc8961", "#fc8a62", "#fc8c63", "#fc8c63", "#fc8e64", "#fc9065", "#fc9065", "#fd9266", "#fd9467", "#fd9668", "#fd9668", "#fd9869", "#fd9a6a", "#fd9a6a", "#fd9b6b", "#fe9d6c", "#fe9d6c", "#fe9f6d", "#fea16e", "#fea36f", "#fea36f", "#fea571", "#fea772", "#fea772", "#fea973", "#feaa74", "#feac76", "#feac76", "#feae77", "#feb078", "#feb078", "#feb27a", "#feb47b", "#feb47b", "#feb67c", "#feb77e", "#feb97f", "#feb97f", "#febb81", "#febd82", "#febd82", "#febf84", "#fec185", "#fec185", "#fec287", "#fec488", "#fec68a", "#fec68a", "#fec88c", "#feca8d", "#feca8d", "#fecc8f", "#fecd90", "#fecd90", "#fecf92", "#fed194", "#fed395", "#fed395", "#fed597", "#fed799", "#fed799", "#fed89a", "#fdda9c", "#fddc9e", "#fddc9e", "#fddea0", "#fde0a1", "#fde0a1", "#fde2a3", "#fde3a5", "#fde3a5", "#fde5a7", "#fde7a9", "#fde9aa", "#fde9aa", "#fdebac", "#fcecae", "#fcecae", "#fceeb0", "#fcf0b2", "#fcf0b2", "#fcf2b4", "#fcf4b6", "#fcf6b8", "#fcf6b8", "#fcf7b9", "#fcf9bb", "#fcf9bb", "#fcfbbd", "#fcfdbf", "#fcfdbf"], "kind": "continuous", "nColors": 5, "cmapName": "magma_from_0.30", "valueRange": [0.0, 3.1812717715594614]}];
       const colorSelector = new ColormapSelectorTool(
         colorMaps,
         colorMapContainer,
@@ -868,8 +868,8 @@ function loadLabelDataLayer() {
           textMinPixelSize: 18,
           textMaxPixelSize: 36,
           textOutlineWidth: 8,
-          textOutlineColor: [238, 238, 238, 221],
-          textBackgroundColor: [255, 255, 255, 64],
+          textOutlineColor: [17, 17, 17, 221],
+          textBackgroundColor: [0, 0, 0, 64],
           fontFamily: "IBM Plex Sans",
           fontWeight: 600,
           lineSpacing: 0.95,
@@ -917,25 +917,25 @@ function loadMetaData() {
       
       datamap.addMetaData(hoverData, {
         tooltipFunction: ({index, picked, layer}) => picked ? {"html": `
-<div style="max-width: 360px; white-space: normal; font-weight: 400; color: #1f2328;">
+<div style="max-width: 360px; white-space: normal; font-weight: 400; color: #e6e8eb;">
   <span style="display: inline-block; padding: 1px 8px; margin-bottom: 5px; border-radius: 999px;
     font-size: 11px; font-weight: 600; background: ${hoverData.pill_bg[index]}; color: ${hoverData.pill_fg[index]};">${hoverData.part[index]}</span>
   <div style="font-weight: 600; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere;">${hoverData.title[index]}</div>
   <div style="display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 3px 10px; margin-top: 6px;
     font-size: 12px; line-height: 1.35;">
-    <div style="color: #6b7280; font-size: 11px; padding-top: 1px;">Mathlib area</div>
-    <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); background: ${hoverData.area_dot[index]};"></span>${hoverData.area[index]}</div>
-    <div style="color: #6b7280; font-size: 11px; padding-top: 1px;">Proof branch</div>
+    <div style="color: #9aa3ad; font-size: 11px; padding-top: 1px;">Mathlib area</div>
+    <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); background: ${hoverData.area_dot[index]};"></span>${hoverData.area[index]}</div>
+    <div style="color: #9aa3ad; font-size: 11px; padding-top: 1px;">Proof branch</div>
     <div style="overflow-wrap: anywhere;">
-      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); background: ${hoverData.branch_dot[index]};"></span>${hoverData.branch[index]}</div>
-    <div style="color: #6b7280; font-size: 11px; padding-top: 1px;">Import depth</div><div>${hoverData.import_depth[index]}</div>
-    <div style="color: #6b7280; font-size: 11px; padding-top: 1px;">From theorem</div>
-    <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15); background: ${hoverData.steps_dot[index]};"></span>${hoverData.steps[index]}</div>
-    <div style="color: #6b7280; font-size: 11px; padding-top: 1px;">Declarations</div><div>${hoverData.decl_line[index]}</div>
+      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); background: ${hoverData.branch_dot[index]};"></span>${hoverData.branch[index]}</div>
+    <div style="color: #9aa3ad; font-size: 11px; padding-top: 1px;">Import depth</div><div>${hoverData.import_depth[index]}</div>
+    <div style="color: #9aa3ad; font-size: 11px; padding-top: 1px;">From theorem</div>
+    <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); background: ${hoverData.steps_dot[index]};"></span>${hoverData.steps[index]}</div>
+    <div style="color: #9aa3ad; font-size: 11px; padding-top: 1px;">Declarations</div><div>${hoverData.decl_line[index]}</div>
   </div>
   <div style="font-family: ui-monospace, Menlo, monospace; font-size: 11px; margin-top: 8px; padding-top: 7px;
-    border-top: 1px solid #e5e7eb; line-height: 1.4; overflow-wrap: anywhere;">${hoverData.statement[index]}</div>
-  <div style="color: #6b7280; font-size: 11px; margin-top: 7px; overflow-wrap: anywhere;">${hoverData.path[index]}</div>
+    border-top: 1px solid #30363d; line-height: 1.4; overflow-wrap: anywhere;">${hoverData.statement[index]}</div>
+  <div style="color: #9aa3ad; font-size: 11px; margin-top: 7px; overflow-wrap: anywhere;">${hoverData.path[index]}</div>
 </div>
 `} : null,
         onClickFunction: ({index, picked, layer}, event) => { if (picked) {window.open(`${hoverData.url[index]}`) } },

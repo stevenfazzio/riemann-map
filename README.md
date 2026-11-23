@@ -41,7 +41,7 @@ scan (the CC0 records below), not from a Lean build, so they are approximate.
 | Embed | `08_embed_api.py` | Qwen3-Embedding-8B through OpenRouter, behind an instruction asking for the area of mathematics |
 | Layout | `04_reduce_and_measure.py` | UMAP to 2-d, and measures of what neighbouring files have in common |
 | Names | `09_name_regions.py` | [Toponymy](https://github.com/TutteInstitute/toponymy) finds regions on the 2-d layout and names them with Claude |
-| Render | `10_render_map.py` | [DataMapPlot](https://github.com/TutteInstitute/datamapplot) builds a private single-file map, or `docs/` with `--public` |
+| Render | `10_render_map.py` | [DataMapPlot](https://github.com/TutteInstitute/datamapplot) builds a private single-file map, or `docs/` with `--public`; the page is dark unless `--light` is given |
 | Card | `11_social_preview.py` | Screenshots the public page in Chrome for the link-preview image |
 
 Regions are found on the same 2-d layout that is plotted, so every named region

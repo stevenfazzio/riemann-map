@@ -9,6 +9,7 @@ Writes  output/full/rh_map.html                       private: one file, data in
 
     uv run python -I scripts/10_render_map.py
     uv run python -I scripts/10_render_map.py --public
+    uv run python -I scripts/10_render_map.py --public --light   # the first published look
     uv run python -I scripts/11_social_preview.py     # the public page's link-card image
 
 This is stage 5's diagnostic map with the 412 region names from stage 9, at four levels, in
@@ -16,6 +17,10 @@ place of its computed directory labels. The hovercard, the search text and the p
 stage 5's. The colour overlays differ: Mathlib area comes first because it follows this
 layout best (54% of a file's 15 nearest neighbours share its area, 19% by chance), Library
 is gone (81% of files are in one library) and steps from the main theorem is new.
+
+The page is dark unless --light is given (see THEMES). Stage 5's colours were chosen for a
+white page, so the dark theme replaces the ones that depend on the background and keeps
+every named category's colour.
 
 Both builds carry the author's text: a 320-character excerpt of each file's first statement
 in the hovercard, and declaration names in the search text. The release states no licence
@@ -28,17 +33,19 @@ its data in separate files so the page itself is small. This script publishes no
 from __future__ import annotations
 
 import argparse
+import colorsys
 import hashlib
 import html
 import json
 import re
+from string import Template
 from urllib.parse import quote
 
 import datamapplot
 import numpy as np
 import pandas as pd
 from matplotlib import colormaps
-from matplotlib.colors import to_hex
+from matplotlib.colors import ListedColormap, to_hex, to_rgb
 
 from riemann_map import (
     FULL,
@@ -100,6 +107,57 @@ issue</a>. <a href="{REPO_URL}" target="_blank" rel="noopener">Code and method</
 </details>
 """
 
+# Dark is the default: Steven compared the two on 2026-11-23 and found dark much better for
+# this map. "light" is the first published look, and is stage 5's colours unchanged.
+#   darkmode    DataMapPlot's own switch: page, panels, tooltip and region-label colours
+#   colors      what CUSTOM_CSS and the hovercard are filled in with
+#   neutrals    greys for the catch-all categories, in place of stage 5's. A catch-all
+#               recedes by being pale on white and by being dark on black. Each is distinct,
+#               because the legend selects points by colour.
+#   ramp_start  the share of a continuous ramp to skip: the dark end of viridis and magma
+#               (which starts at black) cannot be seen on a black page
+THEMES = {
+    "dark": {
+        "darkmode": True,
+        "colors": {
+            "panel_muted": "#a4adb7",
+            "panel_tint": "rgba(164, 173, 183, 0.12)",
+            "panel_line": "rgba(164, 173, 183, 0.25)",
+            "about_text": "#b6bdc5",
+            "link": "#7ab0ff",
+            "card_text": "#e6e8eb",
+            "card_muted": "#9aa3ad",
+            "card_rule": "#30363d",
+            "dot_ring": "rgba(255, 255, 255, 0.28)",
+        },
+        "neutrals": {
+            "Other": "#7d7d7d",
+            "None opened": "#3a3a3a",
+            "Other Mathlib": "#5a5a5a",
+            "Used, no single branch": "#6b6b6b",
+            "Not used by the proof": "#454545",
+        },
+        "ramp_start": {"viridis": 0.15, "magma": 0.30},
+    },
+    "light": {
+        "darkmode": False,
+        "colors": {
+            "panel_muted": "#636c76",
+            "panel_tint": "rgba(99, 108, 118, 0.08)",
+            "panel_line": "rgba(99, 108, 118, 0.15)",
+            "about_text": "#4b5563",
+            "link": "#2563eb",
+            "card_text": "#1f2328",
+            "card_muted": "#6b7280",
+            "card_rule": "#e5e7eb",
+            "dot_ring": "rgba(0, 0, 0, 0.15)",
+        },
+        "neutrals": {},
+        "ramp_start": {"viridis": 0.0, "magma": 0.0},
+    },
+}
+
+# A string.Template: $name is one of a theme's colors.
 CUSTOM_CSS = """
 .deck-tooltip { max-width: min(420px, 92vw) !important; }
 #main-title { line-height: 1.1 !important; letter-spacing: -0.01em; text-wrap: balance; }
@@ -107,16 +165,16 @@ CUSTOM_CSS = """
 .title-pill {
   display: inline-block; margin: 8px 6px 0 0; padding: 3px 10px;
   font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
-  color: #636c76; background: rgba(99, 108, 118, 0.08);
-  border: 1px solid rgba(99, 108, 118, 0.15); border-radius: 12px;
+  color: $panel_muted; background: $panel_tint;
+  border: 1px solid $panel_line; border-radius: 12px;
 }
-.about { margin-top: 8px; max-width: 520px; font-size: 12px; line-height: 1.45; color: #4b5563; }
+.about { margin-top: 8px; max-width: 520px; font-size: 12px; line-height: 1.45; color: $about_text; }
 .about summary {
   cursor: pointer; font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
-  text-transform: uppercase; color: #636c76;
+  text-transform: uppercase; color: $panel_muted;
 }
 .about p { margin: 6px 0 0; }
-.about a { color: #2563eb; }
+.about a { color: $link; }
 """
 # DataMapPlot hard-codes a scroll-zoom speed of 0.01, which Steven finds too slow. Stage 11
 # reads this speed to keep its framing.
@@ -124,10 +182,37 @@ ZOOM_SPEED = 0.04
 CUSTOM_JS = f"datamap.deckgl.setProps({{controller: {{scrollZoom: {{speed: {ZOOM_SPEED}, smooth: true}}}}}});"
 
 
-def hover_template(label: str, dot: str) -> str:
-    """Stage 5's card with one more row, for the steps overlay."""
+def ramp(name: str, start: float) -> str:
+    """The name of a matplotlib colormap: `name` without the first `start` share of it."""
+    if start == 0:
+        return name
+    cut = ListedColormap(colormaps[name](np.linspace(start, 1.0, 256)), name=f"{name}_from_{start:.2f}")
+    colormaps.register(cut, force=True)  # DataMapPlot looks colormaps up by name
+    return cut.name
+
+
+def dark_pill_colors(hex_color: str, contrast) -> tuple[str, str]:
+    """Stage 5's pill for a dark card: a deep shade of the hue behind, a pale tint in front."""
+    h, _, s = colorsys.rgb_to_hls(*to_rgb(hex_color))
+    bg = colorsys.hls_to_rgb(h, 0.20, min(s, 0.55))
+    lightness = 0.78
+    fg = colorsys.hls_to_rgb(h, lightness, s)
+    while contrast(fg, bg) < 4.5:
+        lightness += 0.03
+        fg = colorsys.hls_to_rgb(h, lightness, s)
+    return to_hex(bg), to_hex(fg)
+
+
+def hover_template(colors: dict) -> str:
+    """Stage 5's card with one more row, for the steps overlay, in a theme's colours."""
+    text, muted, rule = colors["card_text"], colors["card_muted"], colors["card_rule"]
+    label = f"color: {muted}; font-size: 11px; padding-top: 1px;"
+    dot = (
+        "display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; "
+        f"box-shadow: inset 0 0 0 1px {colors['dot_ring']}; background: {{color}};"
+    )
     return f"""
-<div style="max-width: 360px; white-space: normal; font-weight: 400; color: #1f2328;">
+<div style="max-width: 360px; white-space: normal; font-weight: 400; color: {text};">
   <span style="display: inline-block; padding: 1px 8px; margin-bottom: 5px; border-radius: 999px;
     font-size: 11px; font-weight: 600; background: {{pill_bg}}; color: {{pill_fg}};">{{part}}</span>
   <div style="font-weight: 600; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere;">{{title}}</div>
@@ -144,8 +229,8 @@ def hover_template(label: str, dot: str) -> str:
     <div style="{label}">Declarations</div><div>{{decl_line}}</div>
   </div>
   <div style="font-family: ui-monospace, Menlo, monospace; font-size: 11px; margin-top: 8px; padding-top: 7px;
-    border-top: 1px solid #e5e7eb; line-height: 1.4; overflow-wrap: anywhere;">{{statement}}</div>
-  <div style="color: #6b7280; font-size: 11px; margin-top: 7px; overflow-wrap: anywhere;">{{path}}</div>
+    border-top: 1px solid {rule}; line-height: 1.4; overflow-wrap: anywhere;">{{statement}}</div>
+  <div style="color: {muted}; font-size: 11px; margin-top: 7px; overflow-wrap: anywhere;">{{path}}</div>
 </div>
 """
 
@@ -192,9 +277,14 @@ def region_layers(labels: np.ndarray, regions: pd.DataFrame) -> list[np.ndarray]
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--public", action="store_true", help="build docs/ for the web, not the private file")
+    ap.add_argument("--light", action="store_true", help="a white page, not the default dark one")
     args = ap.parse_args()
     build = "public" if args.public else "private"
+    theme = THEMES["light" if args.light else "dark"]
     s5 = load_stage("05_render_pilot")
+    assert set(theme["neutrals"]) <= set(s5.NEUTRAL_COLORS), "a themed grey is not a stage 5 catch-all"
+    neutrals = {**s5.NEUTRAL_COLORS, **theme["neutrals"]}
+    ramps = {name: ramp(name, start) for name, start in theme["ramp_start"].items()}
     sample = load_sample("full")
     n = len(sample)
     coords = np.load(RUN_DIRS["full"] / f"coords_{VARIANT}.npy")
@@ -237,20 +327,30 @@ def main() -> None:
     print("Proof branch:", branch.value_counts().to_dict())
     print("Steps from the theorem:", steps_bin.value_counts().reindex([*bin_names, NOT_USED]).to_dict())
 
+    def color_mapping(values: pd.Series) -> dict[str, str]:
+        # Stage 5 solves the palette against its own greys in either theme, so a named
+        # category has one colour on the dark map and the light one. Only the greys change.
+        mapping = {k: neutrals.get(k, v) for k, v in s5.color_mapping(values).items()}
+        assert len(set(mapping.values())) == len(mapping), f"two categories share a colour: {mapping}"
+        return mapping
+
     maps = {
-        "part": s5.color_mapping(part),
-        "area": s5.color_mapping(area),
-        "branch": s5.color_mapping(branch),
+        "part": color_mapping(part),
+        "area": color_mapping(area),
+        "branch": color_mapping(branch),
     }
     # The same ramp as import depth, so the two depth overlays can be compared; dict order
     # is the legend's order.
     maps["steps"] = {
-        name: to_hex(colormaps["viridis"](x))
+        name: to_hex(colormaps[ramps["viridis"]](x))
         for name, x in zip(bin_names, np.linspace(0, 0.95, len(bin_names)))
     }
-    maps["steps"][NOT_USED] = s5.NEUTRAL_COLORS[NOT_USED]
+    maps["steps"][NOT_USED] = neutrals[NOT_USED]
     assert len(set(maps["steps"].values())) == len(maps["steps"]), "two step bins share a colour"
-    pills = {k: s5.pill_colors(v) for k, v in maps["part"].items()}
+    if theme["darkmode"]:
+        pills = {k: dark_pill_colors(v, s5.contrast) for k, v in maps["part"].items()}
+    else:
+        pills = {k: s5.pill_colors(v) for k, v in maps["part"].items()}
 
     names_short = sample["decl_names"].map(lambda xs: ", ".join(x.rsplit(".", 1)[-1] for x in list(xs)[:4]))
     more = (sample["n_decls"] - 4).clip(lower=0)
@@ -308,11 +408,14 @@ def main() -> None:
         (area.to_numpy(), categorical("area", "Mathlib area opened")),
         (branch.to_numpy(), categorical("branch", "Proof branch")),
         (part.to_numpy(), categorical("part", "Part (directory)")),
-        (sample["import_depth"].to_numpy(), continuous("import_depth", "Import depth from Main", "viridis")),
+        (
+            sample["import_depth"].to_numpy(),
+            continuous("import_depth", "Import depth from Main", ramps["viridis"]),
+        ),
         (steps_bin.to_numpy(), categorical("steps", "Steps from the main theorem")),
         (
             np.log10(sample["n_decls"].to_numpy()),
-            continuous("log_decls", "Declarations in file (log10)", "magma"),
+            continuous("log_decls", "Declarations in file (log10)", ramps["magma"]),
         ),
     ]
 
@@ -340,7 +443,7 @@ def main() -> None:
         sub_title_font_size=13,
         font_family="IBM Plex Sans",
         extra_point_data=extra,
-        hover_text_html_template=hover_template(s5.LABEL, s5.DOT),
+        hover_text_html_template=hover_template(theme["colors"]),
         on_click="window.open(`{url}`)",
         enable_search=True,
         search_field="search_text",
@@ -348,7 +451,8 @@ def main() -> None:
         colormap_metadata=[meta for _, meta in overlays],
         cvd_safer=True,
         initial_zoom_fraction=0.9,  # a few far-out islands otherwise squeeze the cloud
-        custom_css=CUSTOM_CSS,
+        darkmode=theme["darkmode"],
+        custom_css=Template(CUSTOM_CSS).substitute(theme["colors"]),
         custom_js=CUSTOM_JS,
         **where,
     )
