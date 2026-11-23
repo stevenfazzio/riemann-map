@@ -280,6 +280,16 @@ def region_layers(labels: np.ndarray, regions: pd.DataFrame) -> list[np.ndarray]
     return layers
 
 
+# Plausible analytics: the one site that covers all of stevenfazzio.com. The script
+# ignores localhost and file:// pages, so local previews stay out of the stats.
+PLAUSIBLE_SNIPPET = """<!-- Privacy-friendly analytics by Plausible -->
+<script async src="https://plausible.io/js/pa-dvmKWiL1gpqH63wOvMp-g.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>"""
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--public", action="store_true", help="build docs/ for the web, not the private file")
@@ -482,7 +492,8 @@ def main() -> None:
     # After the charset declaration, which browsers honour only in the first 1024 bytes.
     anchor = re.search(r"<meta[^>]*charset[^>]*>", text) or re.search("<head>", text)
     assert anchor is not None, "no <head> in the rendered page"
-    text = text[: anchor.end()] + "\n" + open_graph_tags(n) + text[anchor.end() :]
+    head = open_graph_tags(n) + "\n" + PLAUSIBLE_SNIPPET
+    text = text[: anchor.end()] + "\n" + head + text[anchor.end() :]
     write_text_safely(text, PUBLIC_HTML)
     files = sorted(p for p in DOCS.iterdir() if p.is_file())
     for p in files:
