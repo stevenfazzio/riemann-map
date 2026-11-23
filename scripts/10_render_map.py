@@ -1,12 +1,15 @@
-"""Stage 10: render the finished map, private build.
+"""Stage 10: render the finished map, as a private file or as the public site.
 
 Reads   data/full/map/coords_q8_inst.npy              the statements-only layout
         data/full/naming/cluster_labels_b120.npy      the regions (stage 9)
         data/full/naming/full/regions.parquet         their names (stage 9)
         the full run's sample (riemann_map.load_sample)
-Writes  output/full/rh_map.html
+Writes  output/full/rh_map.html                       private: one file, data inside
+        docs/index.html and docs/rh_*.zip             --public: the folder GitHub Pages serves
 
     uv run python -I scripts/10_render_map.py
+    uv run python -I scripts/10_render_map.py --public
+    uv run python -I scripts/11_social_preview.py     # the public page's link-card image
 
 This is stage 5's diagnostic map with the 412 region names from stage 9, at four levels, in
 place of its computed directory labels. The hovercard, the search text and the palettes are
@@ -14,18 +17,21 @@ stage 5's. The colour overlays differ: Mathlib area comes first because it follo
 layout best (54% of a file's 15 nearest neighbours share its area, 19% by chance), Library
 is gone (81% of files are in one library) and steps from the main theorem is new.
 
-The page carries Lean statements in the hovercard and declaration names in the search
-text, and the source has no licence, so it is for local use only.
+Both builds carry the author's text: a 320-character excerpt of each file's first statement
+in the hovercard, and declaration names in the search text. The release states no licence
+or reuse terms. Steven's position (2026-11-23) is to publish the map and honour any request
+to remove it, so the public build keeps the excerpts and adds what a public page needs:
+credit to the author, an "unofficial" mark, a way to ask for removal, link-preview tags, and
+its data in separate files so the page itself is small. This script publishes nothing.
 """
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import html
-import importlib.util
 import json
 import re
-from pathlib import Path
 from urllib.parse import quote
 
 import datamapplot
@@ -38,9 +44,11 @@ from riemann_map import (
     FULL,
     INTERIM,
     OUTPUT,
+    ROOT,
     RUN_DIRS,
     SOURCE_URL,
     load_sample,
+    load_stage,
     project_namespace_roots,
     write_text_safely,
 )
@@ -57,7 +65,40 @@ RENAMES = {(3, 4): ("Hermitian Lattices over CM Fields", "CM Field Arithmetic")}
 # 18% of files hold nothing the proof uses.
 STEP_BINS = [(0, 15), (16, 25), (26, 35), (36, 50), (51, 75), (76, None)]
 NOT_USED = "Not used by the proof"
-PILLS = ["Source released 20 Nov 2026", "Names by Claude Opus 5.5", "Private build"]
+# Steven's other maps are served by GitHub Pages from the repository's docs/ folder at
+# stevenfazzio.com/<repository>/. These two addresses assume the same for this one; neither
+# exists until he publishes.
+DOCS = ROOT / "docs"
+PUBLIC_HTML = DOCS / "index.html"
+SOCIAL_PREVIEW = DOCS / "social-preview.png"
+DATA_PREFIX = "rh"  # the data files sit beside index.html as rh_*.zip
+PUBLIC_URL = "https://stevenfazzio.com/riemann-map/"
+REPO_URL = "https://github.com/stevenfazzio/riemann-map"
+AUTHOR_NOTE_URL = "https://alpo.ge/remark.pdf"
+MIRROR_URL = "https://github.com/tamnd/riemann-lean"
+PRIVATE_HTML = OUTPUT / "full" / "rh_map.html"
+
+TITLE = {"private": "RH proof map", "public": "Riemann Hypothesis Proof Map"}
+PILLS = {
+    "private": ["Source released 20 Nov 2026", "Names by Claude Opus 5.5", "Private build"],
+    "public": ["Source released 20 Nov 2026", "Names by Claude Opus 5.5", "Unofficial"],
+}
+# Under the pills of the public page. The subtitle credits the author; this says what the
+# map is, what it quotes, and how to have something removed.
+ABOUT = f"""
+<details class="about"><summary>About this map</summary>
+<p>Each point is one source file of the Lean 4 proof of the Riemann hypothesis that
+<a href="{AUTHOR_NOTE_URL}" target="_blank" rel="noopener">Levent Alpöge released</a> on
+20 November 2026. A file sits near others that state similar mathematics: the layout comes
+from the text of each file's theorem statements and definitions. Region names were written by
+Claude Opus 5.5 from sample files and have not been checked by a mathematician.</p>
+<p>This map is unofficial and has no connection to the author. Hovercards quote short excerpts
+of the source, which is the author's work, and a click opens the file in a
+<a href="{MIRROR_URL}" target="_blank" rel="noopener">public copy</a>. To have anything
+corrected or removed, <a href="{REPO_URL}/issues" target="_blank" rel="noopener">open an
+issue</a>. <a href="{REPO_URL}" target="_blank" rel="noopener">Code and method</a>.</p>
+</details>
+"""
 
 CUSTOM_CSS = """
 .deck-tooltip { max-width: min(420px, 92vw) !important; }
@@ -69,19 +110,18 @@ CUSTOM_CSS = """
   color: #636c76; background: rgba(99, 108, 118, 0.08);
   border: 1px solid rgba(99, 108, 118, 0.15); border-radius: 12px;
 }
+.about { margin-top: 8px; max-width: 520px; font-size: 12px; line-height: 1.45; color: #4b5563; }
+.about summary {
+  cursor: pointer; font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
+  text-transform: uppercase; color: #636c76;
+}
+.about p { margin: 6px 0 0; }
+.about a { color: #2563eb; }
 """
-# DataMapPlot hard-codes a scroll-zoom speed of 0.01, which Steven finds too slow.
-CUSTOM_JS = "datamap.deckgl.setProps({controller: {scrollZoom: {speed: 0.04, smooth: true}}});"
-
-
-def load_stage(name: str):
-    """Import another stage's script, whose file name cannot be imported directly."""
-    spec = importlib.util.spec_from_file_location(
-        name.lstrip("0123456789_"), Path(__file__).with_name(f"{name}.py")
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+# DataMapPlot hard-codes a scroll-zoom speed of 0.01, which Steven finds too slow. Stage 11
+# reads this speed to keep its framing.
+ZOOM_SPEED = 0.04
+CUSTOM_JS = f"datamap.deckgl.setProps({{controller: {{scrollZoom: {{speed: {ZOOM_SPEED}, smooth: true}}}}}});"
 
 
 def hover_template(label: str, dot: str) -> str:
@@ -110,6 +150,24 @@ def hover_template(label: str, dot: str) -> str:
 """
 
 
+def open_graph_tags(n: int) -> str:
+    og = {
+        "og:title": TITLE["public"],
+        "og:description": (
+            f"{n:,} source files of the Lean proof of the Riemann hypothesis, laid out by what "
+            "they state and named at four zoom levels. Pan, zoom, hover and search."
+        ),
+        "og:type": "website",
+        "og:url": PUBLIC_URL,
+        # Always declared: stage 11 screenshots the rendered page, so the image comes second.
+        "og:image": PUBLIC_URL + SOCIAL_PREVIEW.name,
+    }
+    tags = [f'<meta property="{k}" content="{html.escape(v, quote=True)}">' for k, v in og.items()]
+    tags.append(f'<meta name="description" content="{html.escape(og["og:description"], quote=True)}">')
+    tags.append('<meta name="twitter:card" content="summary_large_image">')
+    return "\n".join(tags)
+
+
 def region_layers(labels: np.ndarray, regions: pd.DataFrame) -> list[np.ndarray]:
     """One name per file per layer, finest layer first, "Unlabelled" outside every region."""
     names = regions.set_index(["layer", "cluster_idx"])["name"].copy()
@@ -132,6 +190,10 @@ def region_layers(labels: np.ndarray, regions: pd.DataFrame) -> list[np.ndarray]
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--public", action="store_true", help="build docs/ for the web, not the private file")
+    args = ap.parse_args()
+    build = "public" if args.public else "private"
     s5 = load_stage("05_render_pilot")
     sample = load_sample("full")
     n = len(sample)
@@ -218,6 +280,8 @@ def main() -> None:
             "statement": esc(statement),
             "path": esc(sample["path"]),
             "url": [SOURCE_URL + quote(p) for p in sample["path"]],
+            # 3,000 characters of names keep 96% of the 1.06M declarations findable by
+            # name; 300 would keep 53%.
             "search_text": esc(
                 sample["path"]
                 + " "
@@ -252,13 +316,26 @@ def main() -> None:
         ),
     ]
 
+    # Each subtitle is short enough for one line: at 1280 px the panel stops growing and a
+    # longer line wraps. The public one names the author and says that clicking works.
+    sub_title = {
+        "private": f"{n:,} Lean files, placed by statement text · {len(regions)} named regions",
+        "public": f"{n:,} files of Levent Alpöge's Lean proof. Click one to open it.",
+    }
+    where = {}
+    if args.public:
+        # Data in files beside the page: one 50 MB HTML file is too heavy for the web. The
+        # page refers to them by file name, so they must stay next to index.html.
+        DOCS.mkdir(parents=True, exist_ok=True)
+        for old in DOCS.glob(f"{DATA_PREFIX}_*"):
+            old.unlink()  # a build that names its files differently must not leave these behind
+        where = {"inline_data": False, "offline_data_path": str(DOCS / DATA_PREFIX)}
     plot = datamapplot.create_interactive_plot(
         coords,
         *layers,
         hover_text=extra["title"].to_numpy(),
-        title="RH proof map",
-        # Short enough for one line: at 1280 px the panel stops growing and a longer line wraps.
-        sub_title=f"{n:,} Lean files, placed by statement text · {len(regions)} named regions",
+        title=TITLE[build],
+        sub_title=sub_title[build],
         title_font_size=24,
         sub_title_font_size=13,
         font_family="IBM Plex Sans",
@@ -273,21 +350,35 @@ def main() -> None:
         initial_zoom_fraction=0.9,  # a few far-out islands otherwise squeeze the cloud
         custom_css=CUSTOM_CSS,
         custom_js=CUSTOM_JS,
+        **where,
     )
 
     # The title panel holds only spans, so its first closing </div> is its own.
-    pills_html = "".join(f'<span class="title-pill">{html.escape(p)}</span>' for p in PILLS)
+    pills_html = "".join(f'<span class="title-pill">{html.escape(p)}</span>' for p in PILLS[build])
+    in_panel = f"<div>{pills_html}</div>" + (ABOUT if args.public else "")
     text, found = re.subn(
         r'(<div\s+id="title-container"[^>]*>.*?)(</div>)',
-        lambda m: m.group(1) + f"<div>{pills_html}</div>" + m.group(2),
+        lambda m: m.group(1) + in_panel + m.group(2),
         str(plot),
         count=1,
         flags=re.DOTALL,
     )
     assert found == 1, "title panel not found"
-    out = OUTPUT / "full" / "rh_map.html"
-    write_text_safely(text, out)
-    print(f"wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")
+    if not args.public:
+        write_text_safely(text, PRIVATE_HTML)
+        print(f"wrote {PRIVATE_HTML} ({PRIVATE_HTML.stat().st_size / 1e6:.1f} MB)")
+        return
+
+    # After the charset declaration, which browsers honour only in the first 1024 bytes.
+    anchor = re.search(r"<meta[^>]*charset[^>]*>", text) or re.search("<head>", text)
+    assert anchor is not None, "no <head> in the rendered page"
+    text = text[: anchor.end()] + "\n" + open_graph_tags(n) + text[anchor.end() :]
+    write_text_safely(text, PUBLIC_HTML)
+    files = sorted(p for p in DOCS.iterdir() if p.is_file())
+    for p in files:
+        print(f"  {p.stat().st_size / 1e6:7.2f} MB  {p.name}")
+    print(f"wrote {DOCS}: {sum(p.stat().st_size for p in files) / 1e6:.1f} MB in {len(files)} files")
+    print(f"next: uv run python -I scripts/11_social_preview.py to refresh {SOCIAL_PREVIEW.name}")
 
 
 if __name__ == "__main__":

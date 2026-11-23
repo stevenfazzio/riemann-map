@@ -40,14 +40,12 @@ from __future__ import annotations
 import argparse
 import asyncio
 import hashlib
-import importlib.util
 import json
 import os
 import re
 import threading
 import time
 import warnings
-from pathlib import Path
 
 import anthropic
 import numpy as np
@@ -60,7 +58,14 @@ from toponymy.keyphrases import KeyphraseBuilder
 from toponymy.llm_wrappers import AsyncLLMWrapper, FailFastLLMError
 from toponymy.toponymy import Toponymy
 
-from riemann_map import FULL, RUN_DIRS, write_npy_safely, write_parquet_safely, write_text_safely
+from riemann_map import (
+    FULL,
+    RUN_DIRS,
+    load_stage,
+    write_npy_safely,
+    write_parquet_safely,
+    write_text_safely,
+)
 
 VARIANT = "q8_inst"  # the layout Steven chose on 2026-11-22: statements only
 NAMING = FULL / "naming"
@@ -90,16 +95,6 @@ LEAN_WORDS = frozenset(
     "extends macro syntax notation local attribute mutual opaque axiom example unsafe partial nonrec "
     "omit include export hiding renaming using sorry".split()
 )
-
-
-def load_stage(name: str):
-    """Import another stage's script, whose file name cannot be imported directly."""
-    spec = importlib.util.spec_from_file_location(
-        name.lstrip("0123456789_"), Path(__file__).with_name(f"{name}.py")
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
 
 
 def cut(text: str) -> str:

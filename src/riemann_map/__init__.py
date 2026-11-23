@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import re
 import stat
@@ -28,6 +29,14 @@ SOURCE_URL = "https://github.com/tamnd/riemann-lean/blob/main/lean/src/"
 
 # Rows per resumable piece of the full embedding run (stage 7).
 EMBED_CHUNK = 1000
+
+
+def load_stage(name: str):
+    """Import a stage script by file name, e.g. "08_embed_api"; such names cannot be imported directly."""
+    spec = importlib.util.spec_from_file_location(name.lstrip("0123456789_"), ROOT / "scripts" / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _match_mode(tmp_path: str, output_path: Path) -> None:
