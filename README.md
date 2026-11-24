@@ -29,10 +29,11 @@ middle of a region, the region's most distinctive identifiers and the names of t
 regions inside it. Nobody who knows the proof has reviewed them. Some are named after the proof's own identifiers, and about a
 fifth of the files sit in no named region at any level.
 
-The colour menu offers six overlays: the Mathlib area a file opens, the branch of the
+The colour menu offers seven overlays: the Mathlib area a file opens, the branch of the
 proof it sits under, its directory, its import depth, its distance from the main
-theorem, and how many declarations it holds. The dependency fields come from a source
-scan (the CC0 records below), not from a Lean build, so they are approximate.
+theorem, how many declarations it holds, and how isolated it is among files that state
+similar things. The dependency fields come from a source scan (the CC0 records below),
+not from a Lean build, so they are approximate.
 [Colour overlays](#colour-overlays) says how each one is worked out.
 
 ## How files are placed
@@ -78,8 +79,8 @@ by region than by which file is nearest to which.
 
 ## Colour overlays
 
-The default colouring is by named region. The colour menu offers six more, and none of
-them is given to the embedding model.
+The default colouring is by named region. The colour menu offers seven more. None of
+them is given to the embedding model; the last is worked out from what the model returns.
 
 | Overlay | What colours a file |
 |---|---|
@@ -89,6 +90,7 @@ them is given to the embedding model.
 | Import depth from Main | The longest chain of imports from `Main` down to the file (`Main` is 0, the deepest file 202) |
 | Steps from the main theorem | The distance from `riemannHypothesis` in the uses-graph, for the nearest declaration in the file, in six bins. Files the proof does not use are grey |
 | Declarations in file | How many declarations the file holds, on a log scale |
+| Isolation | How far the file is from the 15 files most like it, in seven percentile bands. See [Isolation](#isolation) |
 
 Proof branch, import depth and steps come from the CC0 records. Those are a scan of the
 source text and not a Lean build, so what uses what is approximate. Category colours are
@@ -139,6 +141,25 @@ files that hold the trunk are `trunk`.
 declarations sits under a single branch. "Not used by the proof" (30,647 files) means
 the scan found nothing in the file that the theorem depends on.
 
+### Isolation
+
+A file's isolation is the mean cosine distance from its embedding to those of its 15
+nearest files, measured before UMAP. The bands are percentiles, because the values bunch
+up: the median is 0.062 and the most isolated 1% run from 0.17 to 0.32. UMAP spreads
+files out roughly evenly, so a tight group of near-identical statements and a loose
+scatter of unrelated ones look much the same on the map. This overlay shows which is
+which. It follows the layout closely: the Spearman correlation between a file's band and
+the median band of its 15 nearest files on the map is 0.55, against 0.37 for import depth
+and 0.40 for steps from the theorem.
+
+It describes the embedding, not the proof. Of the 1,751 most isolated files, 64% state a
+single theorem whose type chains names defined elsewhere, such as
+`theorem slice_of : Dict → FinTr → Slice`. Only 2% of all files look like that. The
+statements text adds a definition only to a theorem stated as one bare name, so these
+files reach the model as a few abbreviations and nothing more. UMAP puts files it cannot
+place well near the middle: half of the most isolated 1% sit among the 7% of files
+closest to the centre of the map.
+
 ## How it's built
 
 | Stage | Script | What it does |
@@ -148,7 +169,7 @@ the scan found nothing in the file that the theorem depends on.
 | Embed | `08_embed_api.py` | Qwen3-Embedding-8B through OpenRouter, behind an instruction asking for the area of mathematics |
 | Layout | `04_reduce_and_measure.py` | UMAP to 2-d, and measures of what neighbouring files have in common |
 | Names | `09_name_regions.py` | [Toponymy](https://github.com/TutteInstitute/toponymy) finds regions on the 2-d layout and names them with Claude |
-| Render | `10_render_map.py` | [DataMapPlot](https://github.com/TutteInstitute/datamapplot) builds a private single-file map, or `docs/` with `--public`; the page is dark unless `--light` is given |
+| Render | `10_render_map.py` | [DataMapPlot](https://github.com/TutteInstitute/datamapplot) builds a private single-file map, or `docs/` with `--public`; the page is dark unless `--light` is given. The first run also finds each file's 15 nearest files in the embedding for the isolation overlay, which takes about 5 minutes and is kept in `data/` |
 | Card | `11_social_preview.py` | Screenshots the public page in Chrome for the link-preview image |
 
 Regions are found on the same 2-d layout that is plotted, so every named region

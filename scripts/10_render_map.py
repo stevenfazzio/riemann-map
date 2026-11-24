@@ -1,10 +1,13 @@
 """Stage 10: render the finished map, as a private file or as the public site.
 
 Reads   data/full/map/coords_q8_inst.npy              the statements-only layout
+        data/full/emb_q8_inst.npy                     its embedding (stage 8), for the isolation overlay
         data/full/naming/cluster_labels_b120.npy      the regions (stage 9)
         data/full/naming/full/regions.parquet         their names (stage 9)
         the full run's sample (riemann_map.load_sample)
-Writes  output/full/rh_map.html                       private: one file, data inside
+Writes  data/full/map/knn15_{sim,idx}_q8_inst.npy     each file's 15 nearest in the embedding, kept
+        data/full/map/knn15_q8_inst.json              between runs (about 5 minutes to compute)
+        output/full/rh_map.html                       private: one file, data inside
         docs/index.html and docs/rh_*.zip             --public: the folder GitHub Pages serves
 
     uv run python -I scripts/10_render_map.py
@@ -16,7 +19,11 @@ This is stage 5's diagnostic map with the 412 region names from stage 9, at four
 place of its computed directory labels. The hovercard, the search text and the palettes are
 stage 5's. The colour overlays differ: Mathlib area comes first because it follows this
 layout best (54% of a file's 15 nearest neighbours share its area, 19% by chance), Library
-is gone (81% of files are in one library) and steps from the main theorem is new.
+is gone (81% of files are in one library) and steps from the main theorem is new. Isolation,
+the last overlay, is the embedding's own geometry and not a fact about the proof: UMAP evens
+out density, and this shows what it hides. It follows the layout better than any other
+continuous field (Spearman 0.58 between a file's value and the median of its 15 nearest
+neighbours on the map, 0.55 for its band; steps from the theorem 0.40).
 
 The page is dark unless --light is given (see THEMES). Stage 5's colours were chosen for a
 white page, so the dark theme replaces the ones that depend on the background and keeps
@@ -54,9 +61,11 @@ from riemann_map import (
     ROOT,
     RUN_DIRS,
     SOURCE_URL,
+    load_embeddings,
     load_sample,
     load_stage,
     project_namespace_roots,
+    write_npy_safely,
     write_text_safely,
 )
 
@@ -73,6 +82,21 @@ RENAMES = {(3, 4): ("Hermitian Lattices over CM Fields", "CM Field Arithmetic")}
 # 18% of files hold nothing the proof uses.
 STEP_BINS = [(0, 15), (16, 25), (26, 35), (36, 50), (51, 75), (76, None)]
 NOT_USED = "Not used by the proof"
+# Isolation: the mean cosine distance from a file to its K_NEAR nearest other files in the
+# embedding (before UMAP), K_NEAR being the neighbours UMAP uses. Binned by percentile because
+# the values bunch up: the median is 0.062 and the top 1% runs from 0.17 to 0.32. Most of the
+# most isolated files state one theorem chaining opaque names (`Dict → FinTr → Slice`), which
+# gives the embedding model no mathematics to place them by.
+K_NEAR = 15
+ISOLATION_BANDS = [  # (upper percentile, legend name), least isolated first
+    (10, "Least isolated 10%"),
+    (25, "10–25%"),
+    (50, "25–50%"),
+    (75, "50–75%"),
+    (90, "75–90%"),
+    (99, "90–99%"),
+    (100, "Most isolated 1%"),
+]
 # Steven's other maps are served by GitHub Pages from the repository's docs/ folder at
 # stevenfazzio.com/<repository>/. These two addresses assume the same for this one; neither
 # exists until he publishes.
@@ -141,7 +165,7 @@ THEMES = {
             "Used, no single branch": "#6b6b6b",
             "Not used by the proof": "#454545",
         },
-        "ramp_start": {"viridis": 0.15, "magma": 0.30},
+        "ramp_start": {"viridis": 0.15, "magma": 0.30, "plasma": 0.15},
     },
     "light": {
         "darkmode": False,
@@ -157,7 +181,7 @@ THEMES = {
             "dot_ring": "rgba(0, 0, 0, 0.15)",
         },
         "neutrals": {},
-        "ramp_start": {"viridis": 0.0, "magma": 0.0},
+        "ramp_start": {"viridis": 0.0, "magma": 0.0, "plasma": 0.0},
     },
 }
 
@@ -233,6 +257,8 @@ def hover_template(colors: dict) -> str:
     <div style="{label}">From theorem</div>
     <div><span style="{dot.format(color="{steps_dot}")}"></span>{{steps}}</div>
     <div style="{label}">Declarations</div><div>{{decl_line}}</div>
+    <div style="{label}">Isolation</div>
+    <div><span style="{dot.format(color="{iso_dot}")}"></span>{{isolation}}</div>
   </div>
   <div style="font-family: ui-monospace, Menlo, monospace; font-size: 11px; margin-top: 8px; padding-top: 7px;
     border-top: 1px solid {rule}; line-height: 1.4; overflow-wrap: anywhere;">{{statement}}</div>
@@ -257,6 +283,56 @@ def open_graph_tags(n: int) -> str:
     tags.append(f'<meta name="description" content="{html.escape(og["og:description"], quote=True)}">')
     tags.append('<meta name="twitter:card" content="summary_large_image">')
     return "\n".join(tags)
+
+
+def nearest_files(n: int) -> tuple[np.ndarray, np.ndarray]:
+    """Each file's K_NEAR nearest other files in the embedding: cosine similarities, most
+    similar first, and their rows.
+
+    Exact brute force, about 5 minutes on the laptop, so the result is kept beside the layout
+    and reused while the embedding file it came from is unchanged. The JSON is written last,
+    so an interrupted run leaves nothing that will be read as finished.
+    """
+    emb_path = FULL / f"emb_{VARIANT}.npy"  # what load_embeddings reads for the full run
+    sim_path = RUN_DIRS["full"] / f"knn{K_NEAR}_sim_{VARIANT}.npy"
+    idx_path = RUN_DIRS["full"] / f"knn{K_NEAR}_idx_{VARIANT}.npy"
+    meta_path = RUN_DIRS["full"] / f"knn{K_NEAR}_{VARIANT}.json"
+    with open(emb_path, "rb") as f:
+        digest = hashlib.file_digest(f, "sha256").hexdigest()
+    meta = {"embedding_sha256": digest, "k": K_NEAR, "n": n}
+    if meta_path.exists() and json.loads(meta_path.read_text()) == meta:
+        sim, idx = np.load(sim_path), np.load(idx_path)
+        assert sim.shape == idx.shape == (n, K_NEAR), (sim.shape, idx.shape)
+        return sim, idx
+
+    x = load_embeddings("full", VARIANT, n)
+    assert x is not None and len(x) == n, f"no {VARIANT} embedding for {n:,} files"
+    # Already unit length; cheap insurance. Not in place: the array may be the read-only memmap.
+    x = x / np.linalg.norm(x, axis=1, keepdims=True)
+    sim = np.empty((n, K_NEAR), dtype=np.float32)
+    idx = np.empty((n, K_NEAR), dtype=np.int32)
+    block = 1024  # a 1,024 x 175,013 float32 block is 0.7 GB
+    print(f"nearest {K_NEAR} files in the embedding, by brute force (about 5 minutes)")
+    for start in range(0, n, block):
+        stop = min(start + block, n)
+        s = x[start:stop] @ x.T
+        s[np.arange(stop - start), np.arange(start, stop)] = -np.inf  # not its own neighbour
+        top = np.argpartition(s, -K_NEAR, axis=1)[:, -K_NEAR:]
+        top_s = np.take_along_axis(s, top, axis=1)
+        order = np.argsort(-top_s, axis=1)
+        sim[start:stop] = np.take_along_axis(top_s, order, axis=1)
+        idx[start:stop] = np.take_along_axis(top, order, axis=1)
+        if (start // block) % 40 == 0:
+            print(f"  {stop:,} / {n:,}", flush=True)
+    write_npy_safely(sim, sim_path)
+    write_npy_safely(idx, idx_path)
+    write_text_safely(json.dumps(meta, indent=2), meta_path)
+    return sim, idx
+
+
+def ordinal(k: int) -> str:
+    suffix = "th" if 11 <= k % 100 <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(k % 10, "th")
+    return f"{k}{suffix}"
 
 
 def region_layers(labels: np.ndarray, regions: pd.DataFrame) -> list[np.ndarray]:
@@ -343,6 +419,18 @@ def main() -> None:
     print("Proof branch:", branch.value_counts().to_dict())
     print("Steps from the theorem:", steps_bin.value_counts().reindex([*bin_names, NOT_USED]).to_dict())
 
+    sim, _ = nearest_files(n)
+    isolation = 1 - sim.mean(axis=1, dtype=np.float64)
+    pct = pd.Series(isolation).rank(pct=True).to_numpy() * 100  # in (0, 100]
+    band_names = [name for _, name in ISOLATION_BANDS]
+    upper = [hi for hi, _ in ISOLATION_BANDS]
+    iso_band = pd.Series(np.array(band_names, dtype=object)[np.searchsorted(upper, pct, side="left")])
+    iso_text = [f"{ordinal(int(np.ceil(p)))} percentile" for p in pct]
+    print(
+        f"Isolation: median {np.median(isolation):.3f}, top 1% from {np.quantile(isolation, 0.99):.3f};",
+        iso_band.value_counts().reindex(band_names).to_dict(),
+    )
+
     def color_mapping(values: pd.Series) -> dict[str, str]:
         # Stage 5 solves the palette against its own greys in either theme, so a named
         # category has one colour on the dark map and the light one. Only the greys change.
@@ -363,6 +451,12 @@ def main() -> None:
     }
     maps["steps"][NOT_USED] = neutrals[NOT_USED]
     assert len(set(maps["steps"].values())) == len(maps["steps"]), "two step bins share a colour"
+    # A ramp of its own: isolation is not a depth, so it should not invite comparison with them.
+    maps["isolation"] = {
+        name: to_hex(colormaps[ramps["plasma"]](x))
+        for name, x in zip(band_names, np.linspace(0, 0.95, len(band_names)))
+    }
+    assert len(set(maps["isolation"].values())) == len(band_names), "two isolation bands share a colour"
     if theme["darkmode"]:
         pills = {k: dark_pill_colors(v, s5.contrast) for k, v in maps["part"].items()}
     else:
@@ -393,6 +487,8 @@ def main() -> None:
             "steps": esc(pd.Series(steps_text)),
             "steps_dot": [maps["steps"][b] for b in steps_bin],
             "decl_line": esc(pd.Series(decl_line)),
+            "isolation": iso_text,
+            "iso_dot": [maps["isolation"][b] for b in iso_band],
             "statement": esc(statement),
             "path": esc(sample["path"]),
             "url": [SOURCE_URL + quote(p) for p in sample["path"]],
@@ -433,6 +529,7 @@ def main() -> None:
             np.log10(sample["n_decls"].to_numpy()),
             continuous("log_decls", "Declarations in file (log10)", ramps["magma"]),
         ),
+        (iso_band.to_numpy(), categorical("isolation", "Isolation (distance to similar files)")),
     ]
 
     # Each subtitle is short enough for one line: at 1280 px the panel stops growing and a
