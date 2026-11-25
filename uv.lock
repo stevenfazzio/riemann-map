@@ -469,7 +469,7 @@ complete = [
 [[package]]
 name = "datamapplot"
 version = "0.7.3"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/TutteInstitute/datamapplot?rev=ae5304db6a711731d1319d3eb331dd534a8de555#ae5304db6a711731d1319d3eb331dd534a8de555" }
 dependencies = [
     { name = "colorcet" },
     { name = "colorspacious" },
@@ -490,10 +490,6 @@ dependencies = [
     { name = "scikit-image" },
     { name = "scikit-learn" },
     { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/0c/70/95e2caf2cc2f1061d5e99848177f8b8e2e244bfa02a6c637b8b264d72407/datamapplot-0.7.3.tar.gz", hash = "sha256:99ae435827d50d6025844705274525309c3e7838bff950bbaad37abc0943ba9b", size = 329621, upload-time = "2026-05-31T21:08:29.026Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/77/f0/ea8b0b370f8e15241e804bbdc0d451904e4d96846160509f23d31e615904/datamapplot-0.7.3-py3-none-any.whl", hash = "sha256:38c789c9f13251ca86c3b526a1fd528ad29921222020f33465e7ffc45ee51e0f", size = 350610, upload-time = "2026-05-31T21:08:27.529Z" },
 ]
 
 [[package]]
@@ -2595,7 +2591,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", specifier = ">=2.12.0" },
-    { name = "datamapplot", specifier = ">=0.7" },
+    { name = "datamapplot", git = "https://github.com/TutteInstitute/datamapplot?rev=ae5304db6a711731d1319d3eb331dd534a8de555" },
     { name = "glasbey", specifier = ">=0.4.0" },
     { name = "numpy", specifier = ">=2.5.5" },
     { name = "pandas", specifier = "<3" },

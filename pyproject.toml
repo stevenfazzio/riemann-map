@@ -28,6 +28,11 @@ line-length = 110
 [tool.ruff.lint]
 select = ["E", "F", "I"]
 
+[tool.uv.sources]
+# DataMapPlot's main as of 2026-11-19, for tap-to-inspect and scroll_zoom_speed, which no release
+# (0.7.3 is the latest) has yet. Go back to PyPI once one does.
+datamapplot = { git = "https://github.com/TutteInstitute/datamapplot", rev = "ae5304db6a711731d1319d3eb331dd534a8de555" }
+
 [dependency-groups]
 dev = [
     "playwright>=1.65.2",

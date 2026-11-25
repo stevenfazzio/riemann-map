@@ -188,6 +188,11 @@ THEMES = {
 # A string.Template: $name is one of a theme's colors.
 CUSTOM_CSS = """
 .deck-tooltip { max-width: min(420px, 92vw) !important; }
+.rh-card { font-size: 12px; max-width: 360px; }
+/* The tap card's font is 16px times its zoom-out compensation. With 0.75em the card's text shows
+   at about 11 CSS px on a phone (Pixel 7 emulation; the tooltip's is 12px), and a card fits in
+   the half screen the tap card allows without scrolling. The card is wide enough to need no cap. */
+.tap-inspect-card .rh-card { font-size: 0.75em; max-width: none; }
 #main-title { line-height: 1.1 !important; letter-spacing: -0.01em; text-wrap: balance; }
 #main-title + br + span { display: inline-block; margin-top: 4px; line-height: 1.3; text-wrap: pretty; }
 .title-pill {
@@ -206,10 +211,9 @@ CUSTOM_CSS = """
 .about p { margin: 6px 0 0; }
 .about a { color: $link; }
 """
-# DataMapPlot hard-codes a scroll-zoom speed of 0.01, which Steven finds too slow. Stage 11
+# DataMapPlot's default scroll-zoom speed is 0.01, which Steven finds too slow. Stage 11
 # reads this speed to keep its framing.
 ZOOM_SPEED = 0.04
-CUSTOM_JS = f"datamap.deckgl.setProps({{controller: {{scrollZoom: {{speed: {ZOOM_SPEED}, smooth: true}}}}}});"
 
 
 def ramp(name: str, start: float) -> str:
@@ -234,20 +238,29 @@ def dark_pill_colors(hex_color: str, contrast) -> tuple[str, str]:
 
 
 def hover_template(colors: dict) -> str:
-    """Stage 5's card with one more row, for the steps overlay, in a theme's colours."""
+    """Stage 5's card with one more row, for the steps overlay, in a theme's colours.
+
+    Sizes are in em of the .rh-card base (CUSTOM_CSS), 12px in the hover tooltip, so the
+    tooltip renders as it did in px. On a touch screen the same HTML fills DataMapPlot's tap
+    card, which enlarges its font to make up for a phone shrinking the page (it ships no
+    viewport meta); em sizes follow that, px sizes would stay unreadably small. An em here is
+    the 12px base except inside an element that sets its own font size (the pill, the labels,
+    the statement and the path, all 11px), where it is 11px.
+    """
     text, muted, rule = colors["card_text"], colors["card_muted"], colors["card_rule"]
-    label = f"color: {muted}; font-size: 11px; padding-top: 1px;"
+    label = f"color: {muted}; font-size: 0.917em; padding-top: 0.091em;"
     dot = (
-        "display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; "
+        "display: inline-block; width: 0.667em; height: 0.667em; border-radius: 50%; margin-right: 0.5em; "
         f"box-shadow: inset 0 0 0 1px {colors['dot_ring']}; background: {{color}};"
     )
     return f"""
-<div style="max-width: 360px; white-space: normal; font-weight: 400; color: {text};">
-  <span style="display: inline-block; padding: 1px 8px; margin-bottom: 5px; border-radius: 999px;
-    font-size: 11px; font-weight: 600; background: {{pill_bg}}; color: {{pill_fg}};">{{part}}</span>
-  <div style="font-weight: 600; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere;">{{title}}</div>
-  <div style="display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 3px 10px; margin-top: 6px;
-    font-size: 12px; line-height: 1.35;">
+<div class="rh-card" style="white-space: normal; font-weight: 400; color: {text};">
+  <span style="display: inline-block; padding: 0.091em 0.727em; margin-bottom: 0.455em; border-radius: 999px;
+    font-size: 0.917em; font-weight: 600; background: {{pill_bg}}; color: {{pill_fg}};">{{part}}</span>
+  <div style="font-weight: 600; font-size: 1.25em; line-height: 1.25; overflow-wrap: anywhere;">
+    {{title}}</div>
+  <div style="display: grid; grid-template-columns: 6.833em minmax(0, 1fr); gap: 0.25em 0.833em;
+    margin-top: 0.5em; line-height: 1.35;">
     <div style="{label}">Mathlib area</div>
     <div><span style="{dot.format(color="{area_dot}")}"></span>{{area}}</div>
     <div style="{label}">Proof branch</div>
@@ -260,9 +273,11 @@ def hover_template(colors: dict) -> str:
     <div style="{label}">Isolation</div>
     <div><span style="{dot.format(color="{iso_dot}")}"></span>{{isolation}}</div>
   </div>
-  <div style="font-family: ui-monospace, Menlo, monospace; font-size: 11px; margin-top: 8px; padding-top: 7px;
-    border-top: 1px solid {rule}; line-height: 1.4; overflow-wrap: anywhere;">{{statement}}</div>
-  <div style="color: {muted}; font-size: 11px; margin-top: 7px; overflow-wrap: anywhere;">{{path}}</div>
+  <div style="font-family: ui-monospace, Menlo, monospace; font-size: 0.917em; margin-top: 0.727em;
+    padding-top: 0.636em; border-top: 1px solid {rule}; line-height: 1.4; overflow-wrap: anywhere;">
+    {{statement}}</div>
+  <div style="color: {muted}; font-size: 0.917em; margin-top: 0.636em; overflow-wrap: anywhere;">
+    {{path}}</div>
 </div>
 """
 
@@ -558,6 +573,8 @@ def main() -> None:
         extra_point_data=extra,
         hover_text_html_template=hover_template(theme["colors"]),
         on_click="window.open(`{url}`)",
+        # On a touch screen a tap shows the hovercard, and on_click moves to a button in it.
+        on_click_label="View source",
         enable_search=True,
         search_field="search_text",
         colormap_rawdata=[values for values, _ in overlays],
@@ -566,7 +583,7 @@ def main() -> None:
         initial_zoom_fraction=0.9,  # a few far-out islands otherwise squeeze the cloud
         darkmode=theme["darkmode"],
         custom_css=Template(CUSTOM_CSS).substitute(theme["colors"]),
-        custom_js=CUSTOM_JS,
+        scroll_zoom_speed=ZOOM_SPEED,
         **where,
     )
 
